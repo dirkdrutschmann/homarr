@@ -11,9 +11,8 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { ReactNode, forwardRef, useMemo, useRef, useState } from 'react';
 import { useConfigContext } from '~/config/provider';
+import { AreaType, CategoryAreaType } from '~/types/area';
 import { api } from '~/utils/api';
-
-import { AreaType } from '~/types/area';
 import { MovieModal } from './Search/MovieModal';
 
 type SearchProps = {
@@ -166,26 +165,30 @@ const useConfigApps = (search: string) => {
     }
     )
 
-const apps: any = config?.apps.map((app) => {
-  let category: any = "";
-  const area: AreaType = app.area;
-  //TO DO 
-  if (area is Cate) {
-    category = categories?.find(category => category.id === app.area.properties.id ?? null)
-    if (category !== undefined) {
-      category = category?.name + " - "
-    }
-  }
-  return {
-    icon: app.appearance.iconUrl,
-    label: category + app.name,
-    value: category + app.name,
-    sort: 'app',
-    metaData: {
-      url: app.behaviour.externalUrl,
-    },
-  }
-})
+    const apps: any = config?.apps.map((app) => {
+
+
+      let category: any = "";
+      const area: AreaType = app.area;
+
+      if (isCategoryArea(area)) {
+        const cartegoryArea: CategoryAreaType = area;
+        category = categories?.find(category => category.id === cartegoryArea.properties.id);
+        if (category !== undefined) {
+          category = category?.name + " - ";
+        }
+      }
+      
+      return {
+        icon: app.appearance.iconUrl,
+        label: category + app.name,
+        value: category + app.name,
+        sort: 'app',
+        metaData: {
+          url: app.behaviour.externalUrl,
+        },
+      }
+    })
 
 
     return (
@@ -237,10 +240,14 @@ const generateEngines = (searchValue: string, webTemplate: string) =>
     function stringContainsAllParts(string: string, searchParts: string[]) {
       // Escape special characters in search parts
       const escapedSearchParts = searchParts.map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-      
+  
       // Construct regex pattern
-      const pattern = new RegExp(escapedSearchParts.join('.*'), 'i'); // 'i' for case insensitive search
-      
+      const pattern = new RegExp(escapedSearchParts.map(part => `(?=.*${part})`).join(''), 'i'); // 'i' for case insensitive search
+  
       // Test if the string matches the pattern
       return pattern.test(string);
+  }
+
+    function isCategoryArea(area: AreaType): area is CategoryAreaType {
+      return area.type === 'category';
     }

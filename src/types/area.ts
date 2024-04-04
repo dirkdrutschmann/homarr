@@ -7,7 +7,7 @@ interface WrapperAreaType {
   };
 }
 
-interface CategoryAreaType {
+export interface CategoryAreaType {
   type: 'category';
   properties: {
     id: string;
