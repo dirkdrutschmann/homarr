@@ -31,10 +31,9 @@ export function Logo({ size = 'md', withoutText = false }: LogoProps) {
       {withoutText || !largerThanMd ? null : (
         <Text
           size={size === 'md' ? 22 : 10}
-          weight="bold"
-          variant="gradient"
-          className="dashboard-header-logo-text"
-          gradient={primaryGradient}
+          color="black"
+          className="dashboard-header-logo-text pxFont"
+          
         >
           {config?.settings.customization.pageTitle || 'Homarr'}
         </Text>

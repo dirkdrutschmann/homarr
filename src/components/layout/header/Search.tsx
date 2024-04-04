@@ -1,12 +1,10 @@
 import { Autocomplete, Group, Text, useMantineTheme } from '@mantine/core';
 import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import {
-  IconBrandYoutube,
-  IconDownload,
   IconMovie,
   IconSearch,
   IconWorld,
-  TablerIconsProps,
+  TablerIconsProps
 } from '@tabler/icons-react';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from 'next-i18next';
@@ -15,6 +13,7 @@ import { ReactNode, forwardRef, useMemo, useRef, useState } from 'react';
 import { useConfigContext } from '~/config/provider';
 import { api } from '~/utils/api';
 
+import { AreaType } from '~/types/area';
 import { MovieModal } from './Search/MovieModal';
 
 type SearchProps = {
@@ -78,8 +77,7 @@ export const Search = ({ isMobile, autoFocus }: SearchProps) => {
         data={data}
         itemComponent={SearchItemComponent}
         filter={(value, item: SearchAutoCompleteItem) =>
-          engines.some((engine) => engine.sort === item.sort) ||
-          item.value.toLowerCase().includes(value.trim().toLowerCase())
+          engines.some((engine) => engine.sort === item.sort) || stringContainsAllParts(item.value, value.split(" "))
         }
         classNames={{
           input: 'dashboard-header-search-input',
@@ -143,19 +141,55 @@ const useConfigApps = (search: string) => {
   const { config } = useConfigContext();
   return useMemo(() => {
     if (search.trim().length === 0) return [];
-    const apps = config?.apps.filter((app) =>
-      app.name.toLowerCase().includes(search.toLowerCase())
-    );
+
+    const categories = config?.categories;
+
+    const widgets = config?.widgets.filter((widget) =>
+      widget?.type === "bookmark"
+    )
+
+    let links: any[] = []
+    widgets?.forEach((widget) => {
+
+      links = [...links, ...widget?.properties.items.map((item: any) => {
+
+        return {
+          icon: item.iconUrl,
+          label: widget?.properties.name + " - " + item.name,
+          value: widget?.properties.name + " - " + item.name,
+          sort: 'app',
+          metaData: {
+            url: item.href,
+          },
+        }
+      })]
+    }
+    )
+
+const apps: any = config?.apps.map((app) => {
+  let category: any = "";
+  const area: AreaType = app.area;
+  //TO DO 
+  if (area is Cate) {
+    category = categories?.find(category => category.id === app.area.properties.id ?? null)
+    if (category !== undefined) {
+      category = category?.name + " - "
+    }
+  }
+  return {
+    icon: app.appearance.iconUrl,
+    label: category + app.name,
+    value: category + app.name,
+    sort: 'app',
+    metaData: {
+      url: app.behaviour.externalUrl,
+    },
+  }
+})
+
+
     return (
-      apps?.map((app) => ({
-        icon: app.appearance.iconUrl,
-        label: app.name,
-        value: app.name,
-        sort: 'app',
-        metaData: {
-          url: app.behaviour.externalUrl,
-        },
-      })) ?? []
+      [...links, ...apps]
     );
   }, [search, config]);
 };
@@ -164,53 +198,49 @@ type SearchAutoCompleteItem = {
   icon: ((props: TablerIconsProps) => ReactNode) | string;
   value: string;
 } & (
-  | {
+    | {
       sort: 'web' | 'torrent' | 'youtube' | 'app';
       metaData: {
         url: string;
       };
     }
-  | {
+    | {
       sort: 'movie';
     }
-);
+  );
 const movieApps = ['overseerr', 'jellyseerr'] as const;
 const generateEngines = (searchValue: string, webTemplate: string) =>
   searchValue.trim().length > 0
     ? ([
-        {
-          icon: IconWorld,
-          value: `web`,
-          sort: 'web',
-          metaData: {
-            url: webTemplate.includes('%s')
-              ? webTemplate.replace('%s', searchValue)
-              : webTemplate + searchValue,
-          },
+      {
+        icon: IconWorld,
+        value: `web`,
+        sort: 'web',
+        metaData: {
+          url: webTemplate.includes('%s')
+            ? webTemplate.replace('%s', searchValue)
+            : webTemplate + searchValue,
         },
-        {
-          icon: IconDownload,
-          value: `torrent`,
-          sort: 'torrent',
-          metaData: {
-            url: `https://www.torrentdownloads.me/search/?search=${searchValue}`,
-          },
-        },
-        {
-          icon: IconBrandYoutube,
-          value: 'youtube',
-          sort: 'youtube',
-          metaData: {
-            url: `https://www.youtube.com/results?search_query=${searchValue}`,
-          },
-        },
-        ...movieApps.map(
-          (name) =>
-            ({
-              icon: IconMovie,
-              value: name,
-              sort: 'movie',
-            }) as const
-        ),
-      ] as const satisfies Readonly<SearchAutoCompleteItem[]>)
+      },
+      ...movieApps.map(
+        (name) =>
+          ({
+            icon: IconMovie,
+            value: name,
+            sort: 'movie',
+          }) as const
+      ),
+    ] as const satisfies Readonly<SearchAutoCompleteItem[]>)
     : [];
+
+
+    function stringContainsAllParts(string: string, searchParts: string[]) {
+      // Escape special characters in search parts
+      const escapedSearchParts = searchParts.map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      
+      // Construct regex pattern
+      const pattern = new RegExp(escapedSearchParts.join('.*'), 'i'); // 'i' for case insensitive search
+      
+      // Test if the string matches the pattern
+      return pattern.test(string);
+    }

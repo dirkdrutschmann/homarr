@@ -1,5 +1,6 @@
 @import 'fily-publish-gridstack/dist/gridstack.min.css';
 
+
 :root {
   --gridstack-widget-width: 64;
   --gridstack-column-count: 12;
@@ -248,4 +249,13 @@
   .opblock-summary-description {
     color: white;
   }
+}
+
+@font-face {
+  font-family: 'Miso';
+  src: url(/imgs/pronomix/miso-regular.ttf) format('truetype');
+}
+
+.pxFont{
+font-family: 'Miso', sans-serif;
 }
